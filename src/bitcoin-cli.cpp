@@ -400,11 +400,13 @@ private:
     size_t m_max_addr_rate_limited_length{6};
     size_t m_max_age_length{5};
     size_t m_max_id_length{2};
+    size_t m_max_services_length{6};
     struct Peer {
         std::string addr;
         std::string sub_version;
         std::string conn_type;
         std::string network;
+        std::string services;
         std::string age;
         std::string transport_protocol_type;
         double min_ping;
@@ -455,6 +457,16 @@ private:
         if (conn_type == "manual" || conn_type == "feeler") return conn_type;
         if (conn_type == "addr-fetch") return "addr";
         return "";
+    }
+    std::string FormatServices(const UniValue& services)
+    {
+        std::string str;
+        for (size_t i = 0; i < services.size(); ++i) {
+            if (services[i].isNull()) continue;
+            const std::string s{services[i].get_str()};
+            str += s == "NETWORK_LIMITED" ? 'l' : s == "P2P_V2" ? '2' : ToLower(s[0]);
+        }
+        return str;
     }
 
 public:
@@ -519,17 +531,19 @@ public:
                 const double ping{peer["pingtime"].isNull() ? -1 : peer["pingtime"].get_real()};
                 const std::string addr{peer["addr"].get_str()};
                 const std::string age{conn_time == 0 ? "" : ToString((time_now - conn_time) / 60)};
+                const std::string services{FormatServices(peer["servicesnames"])};
                 const std::string sub_version{peer["subver"].get_str()};
                 const std::string transport{peer["transport_protocol_type"].isNull() ? "v1" : peer["transport_protocol_type"].get_str()};
                 const bool is_addr_relay_enabled{peer["addr_relay_enabled"].isNull() ? false : peer["addr_relay_enabled"].get_bool()};
                 const bool is_bip152_hb_from{peer["bip152_hb_from"].get_bool()};
                 const bool is_bip152_hb_to{peer["bip152_hb_to"].get_bool()};
-                m_peers.push_back({addr, sub_version, conn_type, NETWORK_SHORT_NAMES[network_id], age, transport, min_ping, ping, addr_processed, addr_rate_limited, last_blck, last_recv, last_send, last_trxn, peer_id, mapped_as, version, is_addr_relay_enabled, is_bip152_hb_from, is_bip152_hb_to, is_outbound, is_tx_relay});
+                m_peers.push_back({addr, sub_version, conn_type, NETWORK_SHORT_NAMES[network_id], services, age, transport, min_ping, ping, addr_processed, addr_rate_limited, last_blck, last_recv, last_send, last_trxn, peer_id, mapped_as, version, is_addr_relay_enabled, is_bip152_hb_from, is_bip152_hb_to, is_outbound, is_tx_relay});
                 m_max_addr_length = std::max(addr.length() + 1, m_max_addr_length);
                 m_max_addr_processed_length = std::max(ToString(addr_processed).length(), m_max_addr_processed_length);
                 m_max_addr_rate_limited_length = std::max(ToString(addr_rate_limited).length(), m_max_addr_rate_limited_length);
                 m_max_age_length = std::max(age.length(), m_max_age_length);
                 m_max_id_length = std::max(ToString(peer_id).length(), m_max_id_length);
+                m_max_services_length = std::max(services.length(), m_max_services_length);
                 m_is_asmap_on |= (mapped_as != 0);
             }
         }
@@ -540,7 +554,8 @@ public:
         // Report detailed peer connections list sorted by direction and minimum ping time.
         if (DetailsRequested() && !m_peers.empty()) {
             std::sort(m_peers.begin(), m_peers.end());
-            result += strprintf("<->   type   net  v  mping   ping send recv  txn  blk  hb %*s%*s%*s ",
+            result += strprintf("<->   type   net %*s  v  mping   ping send recv  txn  blk  hb %*s%*s%*s ",
+                                m_max_services_length, "serv",
                                 m_max_addr_processed_length, "addrp",
                                 m_max_addr_rate_limited_length, "addrl",
                                 m_max_age_length, "age");
@@ -549,10 +564,12 @@ public:
             for (const Peer& peer : m_peers) {
                 std::string version{ToString(peer.version) + peer.sub_version};
                 result += strprintf(
-                    "%3s %6s %5s %2s%7s%7s%5s%5s%5s%5s  %2s %*s%*s%*s%*i %*s %-*s%s\n",
+                    "%3s %6s %5s %*s %2s%7s%7s%5s%5s%5s%5s  %2s %*s%*s%*s%*i %*s %-*s%s\n",
                     peer.is_outbound ? "out" : "in",
                     ConnectionTypeForNetinfo(peer.conn_type),
                     peer.network,
+                    m_max_services_length, // variable spacing
+                    peer.services,
                     (peer.transport_protocol_type.size() == 2 && peer.transport_protocol_type[0] == 'v') ? peer.transport_protocol_type[1] : ' ',
                     PingTimeToString(peer.min_ping),
                     PingTimeToString(peer.ping),
@@ -575,7 +592,7 @@ public:
                     IsAddressSelected() ? peer.addr : "",
                     IsVersionSelected() && version != "0" ? version : "");
             }
-            result += strprintf("                        ms     ms  sec  sec  min  min                %*s\n\n", m_max_age_length, "min");
+            result += strprintf("                %*s         ms     ms  sec  sec  min  min                %*s\n\n", m_max_services_length, "", m_max_age_length, "min");
         }
 
         // Report peer connection totals by type.
@@ -663,6 +680,14 @@ public:
         "           \"feeler\" - short-lived connection for testing addresses\n"
         "           \"addr\"   - address fetch; short-lived connection for requesting addresses\n"
         "  net      Network the peer connected through (\"ipv4\", \"ipv6\", \"onion\", \"i2p\", \"cjdns\", or \"npr\" (not publicly routable))\n"
+        "  serv     Services offered by the peer\n"
+        "           \"n\" - NETWORK, can serve the full block chain\n"
+        "           \"b\" - BLOOM, can handle bloom-filtered connections (see BIP 111)\n"
+        "           \"w\" - WITNESS, can be asked for blocks and transactions with witness data (SegWit)\n"
+        "           \"c\" - COMPACT_FILTERS, can handle basic block filter requests (see BIPs 157 and 158)\n"
+        "           \"l\" - NETWORK_LIMITED, limited to serving only the last 288 blocks (~2 days)\n"
+        "           \"2\" - P2P_V2, supports version 2 P2P transport protocol, as defined in BIP324\n"
+        "           \"u\" - UNKNOWN, unrecognized bit flag\n"
         "  v        Version of transport protocol used for the connection\n"
         "  mping    Minimum observed ping time, in milliseconds (ms)\n"
         "  ping     Last observed ping time, in milliseconds (ms)\n"
