@@ -19,6 +19,9 @@ interface Mining $Proxy.wrap("interfaces::Mining") {
     processNewBlock @4 (context :Proxy.Context, block: Data) -> (newBlock: Bool, result: Bool);
     getTransactionsUpdated @5 (context :Proxy.Context) -> (result: UInt32);
     testBlockValidity @6 (context :Proxy.Context, block: Data, checkMerkleRoot: Bool) -> (state: BlockValidationState, result: Bool);
+    getTipHeight @7 (context :Proxy.Context) -> (hasResult: Bool, result: Int32);
+    waitTipChanged @8 (timeout: Float64) -> (result: BlockInfo);
+    createNewBlock2 @9 (scriptPubKey: Data, options: BlockCreateOptions) -> (result: BlockTemplate);
 }
 
 interface BlockTemplate $Proxy.wrap("interfaces::BlockTemplate") {
@@ -35,6 +38,11 @@ struct BlockCreateOptions $Proxy.wrap("node::BlockCreateOptions") {
     useMempool @0 :Bool $Proxy.name("use_mempool");
     coinbaseMaxAdditionalWeight @1 :UInt64 $Proxy.name("coinbase_max_additional_weight");
     coinbaseOutputMaxAdditionalSigops @2 :UInt64 $Proxy.name("coinbase_output_max_additional_sigops");
+}
+
+struct BlockInfo {
+    hash @0 :Data;
+    height @1 :Int32;
 }
 
 struct BlockValidationState {
