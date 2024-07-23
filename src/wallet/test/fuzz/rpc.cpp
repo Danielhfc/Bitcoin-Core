@@ -60,133 +60,98 @@ struct RPCFuzzTestingSetup : public TestingSetup {
         tableRPC.execute(request);
     }
 
-    std::vector<std::string> GetRPCCommands() const
+    std::vector<std::string> GetWalletRPCCommands() const
     {
-        return tableRPC.listCommands();
+        Span<const CRPCCommand> tableWalletRPC = wallet::GetWalletRPCCommands();
+        std::vector<std::string> supported_rpc_commands;
+        for (const auto& c : tableWalletRPC) {
+            tableRPC.appendCommand(c.name, &c);
+            supported_rpc_commands.push_back(c.name);
+        }
+        return supported_rpc_commands;
     }
 };
 
 RPCFuzzTestingSetup* rpc_testing_setup = nullptr;
 std::string g_limit_to_rpc_command;
 
-// RPC commands which are not appropriate for fuzzing: such as RPC commands
-// reading or writing to a filename passed as an RPC parameter, RPC commands
-// resulting in network activity, etc.
-const std::vector<std::string> RPC_COMMANDS_NOT_SAFE_FOR_FUZZING{
-    "addconnection",  // avoid DNS lookups
-    "addnode",        // avoid DNS lookups
-    "addpeeraddress", // avoid DNS lookups
-    "dumptxoutset",   // avoid writing to disk
-    "dumpwallet", // avoid writing to disk
-    "enumeratesigners",
-    "echoipc",              // avoid assertion failure (Assertion `"EnsureAnyNodeContext(request.context).init" && check' failed.)
-    "generatetoaddress",    // avoid prohibitively slow execution (when `num_blocks` is large)
-    "generatetodescriptor", // avoid prohibitively slow execution (when `nblocks` is large)
-    "gettxoutproof",        // avoid prohibitively slow execution
-    "importmempool", // avoid reading from disk
-    "importwallet", // avoid reading from disk
-    "loadtxoutset",   // avoid reading from disk
-    "loadwallet",   // avoid reading from disk
-    "savemempool",           // disabled as a precautionary measure: may take a file path argument in the future
-    "setban",                // avoid DNS lookups
-    "stop",                  // avoid shutdown state
-};
-
 // RPC commands which are safe for fuzzing.
-const std::vector<std::string> RPC_COMMANDS_SAFE_FOR_FUZZING{
-    "analyzepsbt",
-    "clearbanned",
-    "combinepsbt",
-    "combinerawtransaction",
-    "converttopsbt",
-    "createmultisig",
-    "createpsbt",
-    "createrawtransaction",
-    "decodepsbt",
-    "decoderawtransaction",
-    "decodescript",
-    "deriveaddresses",
-    "descriptorprocesspsbt",
-    "disconnectnode",
-    "echo",
-    "echojson",
-    "estimaterawfee",
-    "estimatesmartfee",
-    "finalizepsbt",
-    "generate",
-    "generateblock",
-    "getaddednodeinfo",
-    "getaddrmaninfo",
-    "getbestblockhash",
-    "getblock",
-    "getblockchaininfo",
-    "getblockcount",
-    "getblockfilter",
-    "getblockfrompeer", // when no peers are connected, no p2p message is sent
-    "getblockhash",
-    "getblockheader",
-    "getblockstats",
-    "getblocktemplate",
-    "getchaintips",
-    "getchainstates",
-    "getchaintxstats",
-    "getconnectioncount",
-    "getdeploymentinfo",
-    "getdescriptorinfo",
-    "getdifficulty",
-    "getindexinfo",
-    "getmemoryinfo",
-    "getmempoolancestors",
-    "getmempooldescendants",
-    "getmempoolentry",
-    "getmempoolinfo",
-    "getmininginfo",
-    "getnettotals",
-    "getnetworkhashps",
-    "getnetworkinfo",
-    "getnodeaddresses",
-    "getpeerinfo",
-    "getprioritisedtransactions",
-    "getrawaddrman",
-    "getrawmempool",
-    "getrawtransaction",
-    "getrpcinfo",
-    "gettxout",
-    "gettxoutsetinfo",
-    "gettxspendingprevout",
-    "help",
-    "invalidateblock",
-    "joinpsbts",
-    "listbanned",
-    "logging",
-    "mockscheduler",
-    "ping",
-    "preciousblock",
-    "prioritisetransaction",
-    "pruneblockchain",
-    "reconsiderblock",
-    "scanblocks",
-    "scantxoutset",
-    "sendmsgtopeer", // when no peers are connected, no p2p message is sent
-    "sendrawtransaction",
-    "setmocktime",
-    "setnetworkactive",
-    "signmessagewithprivkey",
-    "signrawtransactionwithkey",
-    "submitblock",
-    "submitheader",
-    "submitpackage",
-    "syncwithvalidationinterfacequeue",
-    "testmempoolaccept",
-    "uptime",
-    "utxoupdatepsbt",
-    "validateaddress",
-    "verifychain",
-    "verifymessage",
-    "verifytxoutproof",
-    "waitforblock",
-    "waitforblockheight",
-    "waitfornewblock",
+const std::vector<std::string> WALLET_RPC_COMMANDS_NOT_SAFE_FOR_FUZZING{
+    "importwallet",
+    "loadwallet",
+};
+// RPC commands which are safe for fuzzing.
+const std::vector<std::string> WALLET_RPC_COMMANDS_SAFE_FOR_FUZZING{
+    "getbalances",
+    "keypoolrefill",
+    "newkeypool",
+    "listaddressgroupings",
+    "getwalletinfo",
+    "createwalletdescriptor",
+    "getnewaddress",
+    "getrawchangeaddress",
+    "setlabel",
+    "fundrawtransaction",
+    "abandontransaction",
+    "abortrescan",
+    "addmultisigaddress",
+    "backupwallet",
+    "bumpfee",
+    "psbtbumpfee",
+    "createwallet",
+    "restorewallet",
+    "dumpprivkey",
+    "importmulti",
+    "importdescriptors",
+    "listdescriptors",
+    "dumpwallet",
+    "encryptwallet",
+    "getaddressesbylabel",
+    "listlabels",
+    "walletdisplayaddress",
+    "importprivkey",
+    "importaddress",
+    "importprunedfunds",
+    "removeprunedfunds",
+    "importpubkey",
+    "getaddressinfo",
+    "getbalance",
+    "gethdkeys",
+    "getreceivedbyaddress",
+    "getreceivedbylabel",
+    "gettransaction",
+    "getunconfirmedbalance",
+    "lockunspent",
+    "listlockunspent",
+    "listunspent",
+    "walletpassphrase",
+    "walletpassphrasechange",
+    "walletlock",
+    "signmessage",
+    "sendtoaddress",
+    "sendmany",
+    "settxfee",
+    "signrawtransactionwithwallet",
+    "psbtbumpfee",
+    "bumpfee",
+    "send",
+    "sendall",
+    "walletprocesspsbt",
+    "walletcreatefundedpsbt",
+    "listreceivedbyaddress",
+    "listreceivedbylabel",
+    "listtransactions",
+    "listsinceblock",
+    "rescanblockchain",
+    "listwalletdir",
+    "listwallets",
+    "setwalletflag",
+    "createwallet",
+    "unloadwallet",
+    "sethdseed",
+    "upgradewallet",
+    "simulaterawtransaction",
+    "migratewallet",
 };
 
 std::string ConsumeScalarRPCArgument(FuzzedDataProvider& fuzzed_data_provider, bool& good_data)
@@ -341,7 +306,7 @@ RPCFuzzTestingSetup* InitializeRPCFuzzTestingSetup()
 }
 }; // namespace
 
-void initialize(std::vector<std::string> rpc_commands_safe_for_fuzzing, std::vector<std::string> rpc_commands_not_safe_for_fuzzing, std::vector<std::string> supported_rpc_commands)
+void initialize_wallet_rpc(std::vector<std::string> rpc_commands_safe_for_fuzzing, std::vector<std::string> rpc_commands_not_safe_for_fuzzing, std::vector<std::string> supported_rpc_commands)
 {
     for (const std::string& rpc_command : supported_rpc_commands) {
         const bool safe_for_fuzzing = std::find(rpc_commands_safe_for_fuzzing.begin(), rpc_commands_safe_for_fuzzing.end(), rpc_command) != rpc_commands_safe_for_fuzzing.end();
@@ -361,15 +326,15 @@ void initialize(std::vector<std::string> rpc_commands_safe_for_fuzzing, std::vec
     }
 }
 
-void FuzzInitRPC()
+
+void FuzzInitWalletRPC()
 {
     rpc_testing_setup = InitializeRPCFuzzTestingSetup();
-    const std::vector<std::string> supported_rpc_commands = rpc_testing_setup->GetRPCCommands();
-    initialize(RPC_COMMANDS_SAFE_FOR_FUZZING, RPC_COMMANDS_NOT_SAFE_FOR_FUZZING, supported_rpc_commands);
+    const std::vector<std::string> supported_rpc_commands = rpc_testing_setup->GetWalletRPCCommands();
+    initialize_wallet_rpc(WALLET_RPC_COMMANDS_SAFE_FOR_FUZZING, WALLET_RPC_COMMANDS_NOT_SAFE_FOR_FUZZING, supported_rpc_commands);
 }
 
-
-void ExecuteFuzzCommands(std::vector<std::string> list_of_safe_commands, Span<const unsigned char> buffer)
+void ExecuteFuzzCommandsForWalletRPC(std::vector<std::string> list_of_safe_commands, Span<const unsigned char> buffer)
 {
     FuzzedDataProvider fuzzed_data_provider{buffer.data(), buffer.size()};
     bool good_data{true};
@@ -399,7 +364,8 @@ void ExecuteFuzzCommands(std::vector<std::string> list_of_safe_commands, Span<co
 
 }
 
-FUZZ_TARGET(rpc, .init = FuzzInitRPC)
+FUZZ_TARGET(wallet_rpc, .init = FuzzInitWalletRPC)
 {
-    ExecuteFuzzCommands(RPC_COMMANDS_SAFE_FOR_FUZZING, buffer);
+    ExecuteFuzzCommandsForWalletRPC(WALLET_RPC_COMMANDS_SAFE_FOR_FUZZING, buffer);
 }
+
