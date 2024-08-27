@@ -164,6 +164,9 @@ std::optional<CNetAddr> QueryDefaultGatewayImpl(sa_family_t family)
 
 #elif defined(__APPLE__)
 
+#define ROUNDUP32(a) \
+    ((a) > 0 ? (1 + (((a) - 1) | (sizeof(uint32_t) - 1))) : sizeof(uint32_t))
+
 std::optional<CNetAddr> FromSockAddr(const struct sockaddr* addr)
 {
     // Check valid length. Note that sa_len is not part of POSIX, and exists on MacOS and some BSDs only, so we can't
@@ -212,14 +215,14 @@ std::optional<CNetAddr> QueryDefaultGatewayImpl(sa_family_t family)
                 // 2 is just sa_len + sa_family, the theoretical minimum size of a socket address.
                 if ((sa_pos + 2) > next_msg_pos) return std::nullopt;
                 const struct sockaddr* sa = (const struct sockaddr*)(buf.data() + sa_pos);
-                if (sa->sa_len < 2 || (sa_pos + sa->sa_len) > next_msg_pos) return std::nullopt;
+                if ((sa_pos + sa->sa_len) > next_msg_pos) return std::nullopt;
                 if (i == RTAX_DST) {
                     dst = FromSockAddr(sa);
                 } else if (i == RTAX_GATEWAY) {
                     gateway = FromSockAddr(sa);
                 }
                 // Skip to next address.
-                sa_pos += sa->sa_len;
+                sa_pos += ROUNDUP32(sa->sa_len);
             }
         }
         // Found default gateway?
