@@ -4,6 +4,7 @@
 
 include(GNUInstallDirs)
 include(AddWindowsResources)
+include(GenerateHeaders)
 
 configure_file(${PROJECT_SOURCE_DIR}/cmake/bitcoin-config.h.in config/bitcoin-config.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
@@ -282,6 +283,7 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   $<$<TARGET_EXISTS:bitcoin_wallet>:wallet/init.cpp>
   $<$<NOT:$<TARGET_EXISTS:bitcoin_wallet>>:dummywallet.cpp>
 )
+target_include_directories(bitcoin_node PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/init")
 target_link_libraries(bitcoin_node
   PRIVATE
     core_interface
@@ -298,6 +300,11 @@ target_link_libraries(bitcoin_node
     $<TARGET_NAME_IF_EXISTS:bitcoin_zmq>
     $<TARGET_NAME_IF_EXISTS:USDT::headers>
 )
+if (WITH_EMBEDDED_ASMAP)
+  target_compile_definitions(bitcoin_node PRIVATE ENABLE_EMBEDDED_ASMAP=1)
+  generate_asmap_header()
+  add_dependencies(bitcoin_node generate_asmap_header)
+endif()
 
 
 # Bitcoin Core bitcoind.
