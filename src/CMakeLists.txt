@@ -118,6 +118,10 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   common/run_command.cpp
   common/settings.cpp
   common/signmessage.cpp
+  common/sv2_connman.cpp
+  common/sv2_messages.cpp
+  common/sv2_noise.cpp
+  common/sv2_transport.cpp
   common/system.cpp
   common/url.cpp
   compressor.cpp
@@ -243,6 +247,7 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   node/minisketchwrapper.cpp
   node/peerman_args.cpp
   node/psbt.cpp
+  node/sv2_template_provider.cpp
   node/timeoffsets.cpp
   node/transaction.cpp
   node/txreconciliation.cpp
