@@ -35,36 +35,37 @@
 #include <optional>
 #include <stdexcept>
 #include <vector>
+#include <test/fuzz/rpc.h>
 enum class ChainType;
 
 using util::Join;
 using util::ToString;
 
-namespace {
-struct RPCFuzzTestingSetup : public TestingSetup {
-    RPCFuzzTestingSetup(const ChainType chain_type, TestOpts opts) : TestingSetup{chain_type, opts}
-    {
+namespace RPCFuzz {
+// Constructor definition
+RPCFuzzTestingSetup::RPCFuzzTestingSetup(const ChainType chain_type, TestOpts opts) : TestingSetup{chain_type, opts}
+{
+}
+
+// Member function definitions
+void RPCFuzzTestingSetup::CallRPC(const std::string& rpc_method, const std::vector<std::string>& arguments)
+{
+    JSONRPCRequest request;
+    request.context = &m_node;
+    request.strMethod = rpc_method;
+    try {
+        request.params = RPCConvertValues(rpc_method, arguments);
+    } catch (const std::runtime_error&) {
+        return;
     }
 
-    void CallRPC(const std::string& rpc_method, const std::vector<std::string>& arguments)
-    {
-        JSONRPCRequest request;
-        request.context = &m_node;
-        request.strMethod = rpc_method;
-        try {
-            request.params = RPCConvertValues(rpc_method, arguments);
-        } catch (const std::runtime_error&) {
-            return;
-        }
+    tableRPC.execute(request);
+}
 
-        tableRPC.execute(request);
-    }
-
-    std::vector<std::string> GetRPCCommands() const
-    {
-        return tableRPC.listCommands();
-    }
-};
+std::vector<std::string> RPCFuzzTestingSetup::GetRPCCommands() const
+{
+    return tableRPC.listCommands();
+}
 
 RPCFuzzTestingSetup* rpc_testing_setup = nullptr;
 std::string g_limit_to_rpc_command;
@@ -339,7 +340,6 @@ RPCFuzzTestingSetup* InitializeRPCFuzzTestingSetup()
     SetRPCWarmupFinished();
     return setup.get();
 }
-}; // namespace
 
 void initialize(std::vector<std::string> rpc_commands_safe_for_fuzzing, std::vector<std::string> rpc_commands_not_safe_for_fuzzing, std::vector<std::string> supported_rpc_commands)
 {
@@ -399,7 +399,9 @@ void ExecuteFuzzCommands(std::vector<std::string> list_of_safe_commands, Span<co
 
 }
 
+
 FUZZ_TARGET(rpc, .init = FuzzInitRPC)
 {
     ExecuteFuzzCommands(RPC_COMMANDS_SAFE_FOR_FUZZING, buffer);
 }
+}; // namespace
