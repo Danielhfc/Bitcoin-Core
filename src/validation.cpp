@@ -935,9 +935,9 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
                                     fSpendsCoinbase, nSigOpsCost, lock_points.value()));
     ws.m_vsize = entry->GetTxSize();
 
-    // Enforces 0 base fee for dust transactions, no incentive to be mined alone
+    // Enforces 0-fee for dust transactions, no incentive to be mined alone
     if (m_pool.m_opts.require_standard) {
-        if (!CheckValidEphemeralTx(ptx, m_pool.m_opts.dust_relay_feerate, ws.m_base_fees, state)) {
+        if (!CheckValidEphemeralTx(ptx, m_pool.m_opts.dust_relay_feerate, ws.m_base_fees, ws.m_modified_fees, state)) {
             return false; // state filled in by CheckValidEphemeralTx
         }
     }

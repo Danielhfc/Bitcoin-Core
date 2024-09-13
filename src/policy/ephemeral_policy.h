@@ -40,7 +40,7 @@
  * Does context-less checks about a single transaction.
  * Returns false if the fee is non-zero and dust exists, populating state. True otherwise.
  */
-bool CheckValidEphemeralTx(const CTransactionRef tx, CFeeRate dust_relay_fee, CAmount txfee, TxValidationState& state);
+bool CheckValidEphemeralTx(const CTransactionRef tx, CFeeRate dust_relay_fee, CAmount base_fee, CAmount mod_fee, TxValidationState& state);
 
 /** Must be called for each transaction package if any dust is in the package.
  *  Checks that all dust in a package ends up spent by an only-child or has no child.
