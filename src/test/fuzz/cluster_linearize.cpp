@@ -309,6 +309,8 @@ FUZZ_TARGET(clusterlin_cluster_serialization)
     // guarantees that any acyclic cluster has a corresponding DepGraph serialization.
 
     FuzzedDataProvider provider(buffer.data(), buffer.size());
+    uint64_t rng_seed = provider.ConsumeIntegral<uint64_t>();
+    InsecureRandomContext rng(rng_seed);
 
     // Construct a cluster in a naive way (using a FuzzedDataProvider-based serialization).
     Cluster<TestBitSet> cluster;
@@ -328,6 +330,9 @@ FUZZ_TARGET(clusterlin_cluster_serialization)
     DepGraph depgraph(cluster);
     VerifyDepGraphFromCluster(cluster, depgraph);
 
+    // Copy to store deleted information
+    DepGraph depgraph_copy(depgraph);
+
     // Remove an arbitrary subset (in order to construct a graph with holes) and verify that it
     // still sanity checks (incl. round-tripping serialization).
     uint64_t del = provider.ConsumeIntegralInRange<uint64_t>(1, (uint64_t{1} << TestBitSet::Size()) - 1);
@@ -336,7 +341,63 @@ FUZZ_TARGET(clusterlin_cluster_serialization)
         if (del & 1) setdel.Set(i);
         del >>= 1;
     }
+    assert(del == 0);
+
     depgraph.RemoveTransactions(setdel);
+    SanityCheck(depgraph);
+
+    // Arbitary addition or removal order for transactions we're deleting
+    std::vector<ClusterIndex> del_indexes;
+    setdel &= TestBitSet::Fill(num_tx);
+    for (const auto del_index : setdel) {
+        del_indexes.push_back(del_index);
+    }
+
+    // Tracks deletion index vs re-addition index for dependency re-addition
+    std::array<ClusterIndex, TestBitSet::Size()> map_del_add_index;
+
+    // Re-add everything back in; should not fail sanity checks
+    // But this will have transactions "out of order" and missing
+    // connections from children to previously deleted ancestors.
+    std::shuffle(del_indexes.begin(), del_indexes.end(), rng);
+    for (ClusterIndex del_index : del_indexes) {
+        const auto add_index{depgraph.AddTransaction(depgraph_copy.FeeRate(del_index))};
+        map_del_add_index[del_index] = add_index;
+    }
+    std::shuffle(del_indexes.begin(), del_indexes.end(), rng);
+    for (ClusterIndex del_index : del_indexes) {
+        depgraph.AddDependencies(depgraph_copy.Ancestors(del_index), map_del_add_index[del_index]);
+    }
+
+    // But we can repeat this any number of times, starting from the new depgraph, to obtain the
+    // same DepGraph.
+    for (int iter = 0; iter < 2; ++iter) {
+        depgraph_copy = depgraph;
+        // Batch removal or shuffled iterated removal
+        if (rng.randbool()) {
+            depgraph.RemoveTransactions(setdel);
+        } else {
+            std::shuffle(del_indexes.begin(), del_indexes.end(), rng);
+            for (const auto del_index : del_indexes) {
+                depgraph.RemoveTransactions(TestBitSet::Singleton(del_index));
+            }
+        }
+
+        // Shuffled re-adding of transactions.
+        std::shuffle(del_indexes.begin(), del_indexes.end(), rng);
+        for (ClusterIndex del_index : setdel) {
+            const auto add_index{depgraph.AddTransaction(depgraph_copy.FeeRate(del_index))};
+            map_del_add_index[del_index] = add_index;
+        }
+
+        // Shuffled re-adding of dependencies.
+        std::shuffle(del_indexes.begin(), del_indexes.end(), rng);
+        for (ClusterIndex del_index : setdel) {
+            depgraph.AddDependencies(depgraph_copy.Ancestors(del_index), map_del_add_index[del_index]);
+        }
+
+        assert(depgraph == depgraph_copy);
+    }
     SanityCheck(depgraph);
 }
 
