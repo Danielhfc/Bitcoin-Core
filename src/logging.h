@@ -105,13 +105,6 @@ namespace BCLog {
         size_t m_cur_buffer_memusage GUARDED_BY(m_cs){0};
         size_t m_buffer_lines_discarded GUARDED_BY(m_cs){0};
 
-        /**
-         * m_started_new_line is a state variable that will suppress printing of
-         * the timestamp when multiple calls are made that don't end in a
-         * newline.
-         */
-        std::atomic_bool m_started_new_line{true};
-
         //! Category-specific log level. Overrides `m_log_level`.
         std::unordered_map<LogFlags, Level> m_category_log_levels GUARDED_BY(m_cs);
 
