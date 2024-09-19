@@ -929,7 +929,7 @@ public:
     template <typename... Params>
     void WalletLogPrintf(util::ConstevalFormatString<sizeof...(Params)> wallet_fmt, const Params&... params) const
     {
-        LogInfo("%s %s", GetDisplayName(), tfm::format(wallet_fmt, params...));
+        LogInfo("%s %s", GetDisplayName(), tfm::try_format(wallet_fmt, params...));
     };
 
     /** Upgrade the wallet */
