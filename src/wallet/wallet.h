@@ -927,9 +927,9 @@ public:
 
     /** Prepends the wallet name in logging output to ease debugging in multi-wallet use cases */
     template <typename... Params>
-    void WalletLogPrintf(util::ConstevalFormatString<sizeof...(Params)> wallet_fmt, const Params&... params) const
+    void WalletLogPrintf(util::ConstevalFormatString<util::TrailingNewlineCheck, sizeof...(Params)> wallet_fmt, const Params&... params) const
     {
-        LogInfo("%s %s", GetDisplayName(), tfm::format(wallet_fmt, params...));
+        LogInfo("%s %s\n", GetDisplayName(), util::RemoveSuffixView(tfm::format(wallet_fmt, params...), "\n"));
     };
 
     /** Upgrade the wallet */

@@ -105,13 +105,6 @@ namespace BCLog {
         size_t m_cur_buffer_memusage GUARDED_BY(m_cs){0};
         size_t m_buffer_lines_discarded GUARDED_BY(m_cs){0};
 
-        /**
-         * m_started_new_line is a state variable that will suppress printing of
-         * the timestamp when multiple calls are made that don't end in a
-         * newline.
-         */
-        std::atomic_bool m_started_new_line{true};
-
         //! Category-specific log level. Overrides `m_log_level`.
         std::unordered_map<LogFlags, Level> m_category_log_levels GUARDED_BY(m_cs);
 
@@ -246,7 +239,7 @@ static inline bool LogAcceptCategory(BCLog::LogFlags category, BCLog::Level leve
 bool GetLogCategory(BCLog::LogFlags& flag, std::string_view str);
 
 template <typename... Args>
-inline void LogPrintFormatInternal(std::string_view logging_function, std::string_view source_file, const int source_line, const BCLog::LogFlags flag, const BCLog::Level level, util::ConstevalFormatString<sizeof...(Args)> fmt, const Args&... args)
+inline void LogPrintFormatInternal(std::string_view logging_function, std::string_view source_file, const int source_line, const BCLog::LogFlags flag, const BCLog::Level level, util::ConstevalFormatString<util::TrailingNewlineCheck, sizeof...(Args)> fmt, const Args&... args)
 {
     if (LogInstance().Enabled()) {
         std::string log_msg;
