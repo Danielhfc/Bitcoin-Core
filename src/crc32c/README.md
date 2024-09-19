@@ -85,7 +85,8 @@ cmake -DCRC32C_BUILD_TESTS=0 -DCRC32C_BUILD_BENCHMARKS=0 .. && make all install
 
 ## Development
 
-The following command (when executed from `build/`) (re)builds the project and
+The following command (when executed from within your build directory,
+for example,`build/`) (re)builds the project and
 runs the tests.
 
 ```bash

@@ -24,7 +24,8 @@ tests from subtrees.
 
 Run `test_bitcoin --list_content` for the full list of tests.
 
-To run the unit tests manually, launch `build/src/test/test_bitcoin`. To recompile
+To run the unit tests manually, launch `build/src/test/test_bitcoin`
+(assuming `build` is your build directory). To recompile
 after a test file was modified, run `cmake --build build` and then run the test again. If you
 modify a non-test file, use `cmake --build build --target test_bitcoin` to recompile only what's needed
 to run the unit tests.
@@ -34,6 +35,7 @@ To add more unit tests, add `BOOST_AUTO_TEST_CASE` functions to the existing
 implement new `BOOST_AUTO_TEST_SUITE` sections.
 
 To run the GUI unit tests manually, launch `build/src/qt/test/test_bitcoin-qt`
+(assuming `build` is your build directory).
 
 To add more GUI unit tests, add them to the `src/qt/test/` directory and
 the `src/qt/test/test_main.cpp` file.

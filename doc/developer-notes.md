@@ -340,7 +340,8 @@ Recommendations:
 
 Assuming the build directory is named `build`,
 the documentation can be generated with `cmake --build build --target docs`.
-The resulting files will be located in `build/doc/doxygen/html`;
+The resulting files will be located in `build/doc/doxygen/html`
+(assuming `build` is your build directory);
 open `index.html` in that directory to view the homepage.
 
 Before building the `docs` target, you'll need to install these dependencies:

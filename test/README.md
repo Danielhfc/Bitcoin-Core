@@ -109,7 +109,8 @@ By default, up to 4 tests will be run in parallel by test_runner. To specify
 how many jobs to run, append `--jobs=n`
 
 The individual tests and the test_runner harness have many command-line
-options. Run `build/test/functional/test_runner.py -h` to see them all.
+options. Run `build/test/functional/test_runner.py -h`
+(assuming `build` is your build directory) to see them all.
 
 #### Speed up test runs with a RAM disk
 
@@ -323,7 +324,8 @@ For ways to generate more granular profiles, see the README in
 
 ### Util tests
 
-Util tests can be run locally by running `build/test/util/test_runner.py`.
+Util tests can be run locally by running `build/test/util/test_runner.py`
+(assuming `build` is your build directory).
 Use the `-v` option for verbose output.
 
 ### Lint tests
