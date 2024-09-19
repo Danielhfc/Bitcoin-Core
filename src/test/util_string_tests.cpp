@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <tinyformat.h>
 #include <util/string.h>
 
 #include <boost/test/unit_test.hpp>
@@ -81,6 +82,14 @@ BOOST_AUTO_TEST_CASE(ConstevalFormatString_NumSpec)
     auto err_term{"Format specifier incorrectly terminated by end of string"};
     FailFmtWithError<1>("%", err_term);
     FailFmtWithError<1>("%1$", err_term);
+}
+
+BOOST_AUTO_TEST_CASE(tinyformat_try_format)
+{
+    // ensure invalid format strings don't throw at run-time
+    BOOST_CHECK_EQUAL(tfm::try_format("%*c", "dummy"), R"(Error "tinyformat: Cannot convert from argument type to integer for use as variable width or precision" while formatting log message: "%*c")");
+    BOOST_CHECK_EQUAL(tfm::try_format("%2$*3$d", "dummy", "value"), R"(Error "tinyformat: Positional argument out of range" while formatting log message: "%2$*3$d")");
+    BOOST_CHECK_EQUAL(tfm::try_format("%.*f", 5), R"(Error "tinyformat: Too many conversion specifiers in format string" while formatting log message: "%.*f")");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -235,11 +235,25 @@ template <typename T1, size_t PREFIX_LEN>
 }
 } // namespace util
 
+/**
+ * Safer alternative to tfm::format that does not throw string
+ * formatting errors at run-time.
+ *
+ * The `fmt` format string is partially checked at compile-time. At
+ * run-time, if any `tinyformat::format_error` occurs, the error is caught
+ * and the error message is returned instead, so the caller doesn't need
+ * to handle the error.
+ */
 namespace tinyformat {
 template <typename... Args>
-std::string format(util::ConstevalFormatString<sizeof...(Args)> fmt, const Args&... args)
+std::string try_format(util::ConstevalFormatString<sizeof...(Args)> fmt, const Args&... args)
 {
-    return format(fmt.fmt, args...);
+    try {
+        return tfm::format(fmt.fmt, args...);
+    } catch (tinyformat::format_error& fmterr) {
+        /* Original format string will have newline so don't add one here */
+        return "Error \"" + std::string{fmterr.what()} + "\" while formatting log message: \"" + fmt.fmt + "\"";
+    }
 }
 } // namespace tinyformat
 

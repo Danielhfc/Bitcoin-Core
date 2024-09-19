@@ -30,7 +30,7 @@ constexpr auto SYNC_LOCATOR_WRITE_INTERVAL{30s};
 template <typename... Args>
 void BaseIndex::FatalErrorf(util::ConstevalFormatString<sizeof...(Args)> fmt, const Args&... args)
 {
-    auto message = tfm::format(fmt, args...);
+    auto message{tfm::try_format(fmt, args...)};
     node::AbortNode(m_chain->context()->shutdown, m_chain->context()->exit_status, Untranslated(message), m_chain->context()->warnings.get());
 }
 
