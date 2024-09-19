@@ -11,6 +11,7 @@
 #include <primitives/transaction.h> // for CTransactionRef
 #include <stdint.h>                 // for int64_t
 #include <uint256.h>                // for uint256
+#include <util/time.h>
 
 #include <memory>   // for unique_ptr, shared_ptr
 #include <optional> // for optional
@@ -58,6 +59,10 @@ public:
     //! Returns the hash for the tip of this chain
     virtual std::optional<uint256> getTipHash() = 0;
 
+    // Implemented in https://github.com/bitcoin/bitcoin/pull/30409
+    virtual std::optional<int> getTipHeight() { return {}; }
+    virtual std::pair<uint256, int> waitTipChanged(MillisecondsDouble timeout = MillisecondsDouble::max()) { return {}; }
+
     /**
      * Construct a new block template
      *
@@ -66,6 +71,9 @@ public:
      * @returns a block template
      */
     virtual std::unique_ptr<BlockTemplate> createNewBlock(const CScript& script_pub_key, const node::BlockCreateOptions& options = {}) = 0;
+
+    // Implemented in https://github.com/bitcoin/bitcoin/pull/30440
+    virtual std::unique_ptr<BlockTemplate> createNewBlock2(const CScript& script_pub_key, const node::BlockCreateOptions& options={}) { return {}; }
 
     /**
      * Processes new block. A valid new block is automatically relayed to peers.
