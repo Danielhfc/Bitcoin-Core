@@ -10,6 +10,7 @@
 #include <test/util/net.h>
 #include <test/util/script.h>
 #include <test/util/setup_common.h>
+#include <uint256.h>
 #include <validation.h>
 
 namespace {
@@ -149,6 +150,9 @@ FUZZ_TARGET(p2p_headers_presync, .init = initialize)
 
     // The chain is just a single block, so this is equal to 1
     size_t original_index_size{WITH_LOCK(cs_main, return chainman.m_blockman.m_block_index.size())};
+    arith_uint256 total_work{WITH_LOCK(cs_main, return chainman.m_best_header->nChainWork)};
+
+    std::vector<CBlockHeader> all_headers;
 
     LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 100)
     {
@@ -171,6 +175,8 @@ FUZZ_TARGET(p2p_headers_presync, .init = initialize)
                     base = header;
                 }
 
+                all_headers.insert(all_headers.end(), headers.begin(), headers.end());
+
                 auto headers_msg = NetMsg::Make(NetMsgType::HEADERS, TX_WITH_WITNESS(headers));
                 g_testing_setup->SendMessage(fuzzed_data_provider, std::move(headers_msg));
             },
@@ -179,6 +185,8 @@ FUZZ_TARGET(p2p_headers_presync, .init = initialize)
                 auto block = finalized_block();
                 CBlockHeaderAndShortTxIDs cmpct_block{block, fuzzed_data_provider.ConsumeIntegral<uint64_t>()};
 
+                all_headers.push_back(block);
+
                 auto headers_msg = NetMsg::Make(NetMsgType::CMPCTBLOCK, TX_WITH_WITNESS(cmpct_block));
                 g_testing_setup->SendMessage(fuzzed_data_provider, std::move(headers_msg));
             },
@@ -186,9 +194,16 @@ FUZZ_TARGET(p2p_headers_presync, .init = initialize)
                 // Send a block
                 auto block = finalized_block();
 
+                all_headers.push_back(block);
+
                 auto headers_msg = NetMsg::Make(NetMsgType::BLOCK, TX_WITH_WITNESS(block));
                 g_testing_setup->SendMessage(fuzzed_data_provider, std::move(headers_msg));
             });
+
+        total_work += CalculateClaimedHeadersWork(all_headers);
+
+        // This test should never create a chain with more work than MinimumChainWork.
+        assert(total_work < chainman.MinimumChainWork());
     }
 
     // The headers/blocks sent in this test should never be stored, as the chains don't have the work required
