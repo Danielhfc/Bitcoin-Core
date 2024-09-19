@@ -267,6 +267,13 @@ def satoshi_round(amount: Union[int, float, str], *, rounding: str) -> Decimal:
     """Rounds a Decimal amount to the nearest satoshi using the specified rounding mode."""
     return Decimal(amount).quantize(SATOSHI_PRECISION, rounding=rounding)
 
+def ensure_for_helper_internal(*, duration, predicate):
+    time_end = time.time() + duration
+    predicate_source = "''''\n" + inspect.getsource(predicate) + "'''"
+    while time.time() < time_end:
+        if not predicate():
+            raise AssertionError("Predicate {} became false within {} seconds".format(predicate_source, duration))
+        time.sleep(0.05)
 
 def wait_until_helper_internal(predicate, *, attempts=float('inf'), timeout=float('inf'), lock=None, timeout_factor=1.0):
     """Sleep until the predicate resolves to be True.
