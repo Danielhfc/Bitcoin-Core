@@ -13,17 +13,36 @@ BOOST_AUTO_TEST_SUITE(util_string_tests)
 // Helper to allow compile-time sanity checks while providing the number of
 // args directly. Normally PassFmt<sizeof...(Args)> would be used.
 template <unsigned NumArgs>
-inline void PassFmt(util::ConstevalFormatString<NumArgs> fmt)
+inline void PassFmt(util::ConstevalFormatString<util::NoEndCheck, NumArgs> fmt)
 {
     // This was already executed at compile-time, but is executed again at run-time to avoid -Wunused.
     decltype(fmt)::Detail_CheckNumFormatSpecifiers(fmt.fmt);
 }
-template <unsigned WrongNumArgs>
+template <unsigned NumArgs>
+inline void PassFmtNewline(util::ConstevalFormatString<util::TrailingNewlineCheck, NumArgs> fmt)
+{
+    // This was already executed at compile-time, but is executed again at run-time to avoid -Wunused.
+    decltype(fmt)::Detail_CheckNumFormatSpecifiers(fmt.fmt);
+}
+template <unsigned WrongNumArgs, util::EndCheck end_check = util::NoEndCheck>
 inline void FailFmtWithError(std::string_view wrong_fmt, std::string_view error)
 {
+    using WrongFmt = util::ConstevalFormatString<end_check, WrongNumArgs>;
     using ErrType = const char*;
     auto check_throw{[error](const ErrType& str) { return str == error; }};
-    BOOST_CHECK_EXCEPTION(util::ConstevalFormatString<WrongNumArgs>::Detail_CheckNumFormatSpecifiers(wrong_fmt), ErrType, check_throw);
+    BOOST_CHECK_EXCEPTION(WrongFmt::Detail_CheckNumFormatSpecifiers(wrong_fmt), ErrType, check_throw);
+}
+
+BOOST_AUTO_TEST_CASE(ConstevalFormatString_Newline)
+{
+    PassFmtNewline<0>("\n");
+    PassFmtNewline<1>("%s\n");
+    PassFmtNewline<0>("%%\n");
+    PassFmtNewline<1>("%\n"); // tinyformat will use the newline as format specifier
+
+    auto err_newline{"Format string must end with a newline"};
+    FailFmtWithError<1, util::TrailingNewlineCheck>("", err_newline);
+    FailFmtWithError<1, util::TrailingNewlineCheck>("%s", err_newline);
 }
 
 BOOST_AUTO_TEST_CASE(ConstevalFormatString_NumSpec)

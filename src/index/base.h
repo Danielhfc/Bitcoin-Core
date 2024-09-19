@@ -95,7 +95,7 @@ private:
     virtual bool AllowPrune() const = 0;
 
     template <typename... Args>
-    void FatalErrorf(util::ConstevalFormatString<sizeof...(Args)> fmt, const Args&... args);
+    void FatalErrorf(util::ConstevalFormatString<util::NoEndCheck, sizeof...(Args)> fmt, const Args&... args);
 
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;

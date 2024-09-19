@@ -18,6 +18,10 @@
 #include <vector>
 
 namespace util {
+enum EndCheck {
+    TrailingNewlineCheck,
+    NoEndCheck,
+};
 /**
  * @brief A wrapper for a compile-time partially validated format string
  *
@@ -32,12 +36,17 @@ namespace util {
  * can lead to run-time exceptions. Code wanting to use the `*` specifier can
  * side-step this struct and call tinyformat directly.
  */
-template <unsigned num_params>
+template <EndCheck end_check, unsigned num_params>
 struct ConstevalFormatString {
     const char* const fmt;
     consteval ConstevalFormatString(const char* str) : fmt{str} { Detail_CheckNumFormatSpecifiers(fmt); }
     constexpr static void Detail_CheckNumFormatSpecifiers(std::string_view str)
     {
+        if constexpr (end_check == TrailingNewlineCheck) {
+            if (!str.ends_with("\n")) throw "Format string must end with a newline";
+        } else {
+            static_assert(end_check == NoEndCheck);
+        }
         unsigned count_normal{0}; // Number of "normal" specifiers, like %s
         unsigned count_pos{0};    // Max number in positional specifier, like %8$s
         for (auto it{str.begin()}; it < str.end();) {
@@ -236,8 +245,8 @@ template <typename T1, size_t PREFIX_LEN>
 } // namespace util
 
 namespace tinyformat {
-template <typename... Args>
-std::string format(util::ConstevalFormatString<sizeof...(Args)> fmt, const Args&... args)
+template <util::EndCheck end_check, typename... Args>
+std::string format(util::ConstevalFormatString<end_check, sizeof...(Args)> fmt, const Args&... args)
 {
     return format(fmt.fmt, args...);
 }
